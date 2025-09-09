@@ -1,10 +1,6 @@
-<!-- src/routes/order/+page.svelte (뒤로가기 버튼 추가 버전) -->
-
 <script>
 	import { goto } from '$app/navigation';
 	import { cart as cartStore, cartTotal as cartTotalStore } from '$lib/cartStore.js';
-
-	// (기존 script 내용은 모두 동일)
 	const categories = [ { id: 'korea', name: '한식' }, { id: 'japan', name: '일식' }, { id: 'china', name: '중식' }, { id: 'western', name: '양식' } ];
 	const menuItems = [
 		// --- 한식 (16개) ---
@@ -79,216 +75,162 @@
 		{ id: 63, categoryId: 'western', name: '로제 파스타', price: 13500, image: '🍝' },
 		{ id: 64, categoryId: 'western', name: '알리오 올리오', price: 11000, image: '🍝' },
 	];
-	let selectedCategoryId = 'korea';
-	let cart = [];
-
+	let selectedCategoryId = 'korea'; let cart = [];
 	$: filteredMenu = menuItems.filter(item => item.categoryId === selectedCategoryId);
 	$: cartTotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-
 	function selectCategory(categoryId) { selectedCategoryId = categoryId; }
-	function addToCart(menuItem) {
-		const existingItem = cart.find(item => item.id === menuItem.id);
-		if (existingItem) { existingItem.quantity++; cart = cart; } 
-		else { cart = [...cart, { ...menuItem, quantity: 1 }]; }
-	}
-	function adjustQuantity(itemId, amount) {
-		const itemIndex = cart.findIndex(item => item.id === itemId);
-		if (itemIndex === -1) return;
-		cart[itemIndex].quantity += amount;
-		if (cart[itemIndex].quantity <= 0) { cart = cart.filter(item => item.id !== itemId); } 
-		else { cart = cart; }
-	}
+	function addToCart(menuItem) { const existingItem = cart.find(item => item.id === menuItem.id); if (existingItem) { existingItem.quantity++; cart = cart; } else { cart = [...cart, { ...menuItem, quantity: 1 }]; } }
+	function adjustQuantity(itemId, amount) { const itemIndex = cart.findIndex(item => item.id === itemId); if (itemIndex === -1) return; cart[itemIndex].quantity += amount; if (cart[itemIndex].quantity <= 0) { cart = cart.filter(item => item.id !== itemId); } else { cart = cart; } }
 	function clearCart() { cart = []; }
-	function goToPayment() {
-		if (cart.length === 0) {
-			alert('주문할 메뉴를 먼저 담아주세요.');
-			return;
-		}
-		// 스토어에 현재 장바구니 정보와 총액을 저장합니다.
-		cartStore.set(cart);
-		cartTotalStore.set(cartTotal);
-		
-		// 결제 페이지로 이동합니다.
-		goto('/payment');
-	}
-
-    // --- ▼▼▼ 뒤로가기 함수 추가 ▼▼▼ ---
-    function goBack() {
-        // 메인 페이지로 이동합니다.
-        goto('/');
-    }
+	function goToPayment() { if (cart.length === 0) { return; } cartStore.set(cart); cartTotalStore.set(cartTotal); goto('/payment'); }
 </script>
 
-<div class="page-container">
-    <!-- ▼▼▼ 뒤로가기 버튼 추가 ▼▼▼ -->
-    <button class="back-button" on:click={goBack} aria-label="뒤로가기">
-        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 12H5"/><polyline points="12 19 5 12 12 5"/>
-        </svg>
-    </button>
-
-	<div class="order-layout">
-		<!-- (나머지 HTML 내용은 모두 동일) -->
-		<div class="menu-section">
-			<nav class="category-nav">
-				{#each categories as category}
-					<button class="category-button" class:active={selectedCategoryId === category.id} on:click={() => selectCategory(category.id)}>
-						{category.name}
-					</button>
-				{/each}
-			</nav>
-			<div class="menu-grid">
-				{#each filteredMenu as item (item.id)}
-					<button class="menu-item" on:click={() => addToCart(item)}>
-						<div class="menu-item-image">{item.image}</div>
-						<div class="menu-item-name">{item.name}</div>
-						<div class="menu-item-price">{item.price.toLocaleString()}원</div>
-					</button>
-				{/each}
-			</div>
+<!-- 페이지 전체 레이아웃 (스크롤 방지) -->
+<div class="page-layout">
+	<!-- 1. 왼쪽: 메뉴 선택 영역 -->
+	<div class="menu-section">
+		<nav class="category-nav">
+			{#each categories as category}
+				<button class="category-button" class:active={selectedCategoryId === category.id} on:click={() => selectCategory(category.id)}>{category.name}</button>
+			{/each}
+		</nav>
+		<!-- 메뉴 목록만 스크롤되는 영역 -->
+		<div class="menu-grid">
+			{#each filteredMenu as item (item.id)}
+				<button class="menu-item" on:click={() => addToCart(item)}>
+					<div class="menu-item-image">{item.image}</div>
+					<div class="menu-item-name">{item.name}</div>
+					<div class="menu-item-price">{item.price.toLocaleString()}원</div>
+				</button>
+			{/each}
 		</div>
-		<div class="cart-section">
-			<h2 class="cart-title">주문 내역</h2>
-			<div class="cart-items-box">
-				{#if cart.length === 0}
-					<div class="cart-empty"><span>메뉴를 선택해주세요</span></div>
-				{:else}
-					{#each cart as item (item.id)}
-						<div class="cart-item">
-							<div class="item-info">
-								<span class="item-name">{item.name}</span>
-								<span class="item-price">{(item.price * item.quantity).toLocaleString()}원</span>
-							</div>
-							<div class="quantity-control">
-								<button class="quantity-btn" on:click={() => adjustQuantity(item.id, -1)}>−</button>
-								<span class="quantity-display">{item.quantity}</span>
-								<button class="quantity-btn" on:click={() => adjustQuantity(item.id, 1)}>+</button>
-							</div>
+	</div>
+
+	<!-- 2. 오른쪽: 주문 내역 영역 -->
+	<div class="cart-section">
+		<h2 class="cart-title">주문 내역</h2>
+		<div class="cart-items-box">
+			{#if cart.length === 0}
+				<div class="cart-empty"><span>메뉴를 선택해주세요</span></div>
+			{:else}
+				{#each cart as item (item.id)}
+					<div class="cart-item">
+						<div class="item-info">
+							<span class="item-name">{item.name}</span>
+							<span class="item-price">{(item.price * item.quantity).toLocaleString()}원</span>
 						</div>
-					{/each}
-				{/if}
-			</div>
-			<div class="cart-summary">
-				<div class="total-amount">
-					<span>총 주문금액</span>
-					<span class="total-price">{cartTotal.toLocaleString()}원</span>
-				</div>
-				<div class="cart-actions">
-					<button class="action-btn clear-btn" on:click={clearCart}>전체 취소</button>
-					<button class="action-btn pay-btn" on:click={goToPayment}>결제하기</button>
-				</div>
+						<div class="quantity-control">
+							<button class="quantity-btn" on:click={() => adjustQuantity(item.id, -1)}>−</button>
+							<span class="quantity-display">{item.quantity}</span>
+							<button class="quantity-btn" on:click={() => adjustQuantity(item.id, 1)}>+</button>
+						</div>
+					</div>
+				{/each}
+			{/if}
+		</div>
+		<div class="cart-summary">
+			<div class="total-amount"><span>총 주문금액</span><span class="total-price">{cartTotal.toLocaleString()}원</span></div>
+			<div class="cart-actions">
+				<button class="action-btn clear-btn" on:click={clearCart}>전체 취소</button>
+				<button class="action-btn pay-btn" on:click={goToPayment}>결제하기</button>
 			</div>
 		</div>
 	</div>
 </div>
 
 <style>
-	:global(body, html) {
-		margin: 0; padding: 0; height: 100vh; overflow: hidden;
-		font-family: 'Pretendard', -apple-system, sans-serif; 
-		background-color: #f1f3f5;
-	}
-	.page-container {
-		height: 100%; padding: 2.5vh; box-sizing: border-box;
-        position: relative; /* ▼▼▼ 버튼 위치의 기준점이 되도록 추가 ▼▼▼ */
+	/* --- ▼▼▼ 핵심 수정 부분 ▼▼▼ --- */
+	.page-layout {
+		display: grid;
+		grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+		gap: 2rem;
+		width: 100%;
+		height: 100%; /* 부모(content-area)의 높이를 꽉 채움 */
+		padding: 2.5rem;
+		box-sizing: border-box;
 	}
 
-    /* --- ▼▼▼ 뒤로가기 버튼 스타일 추가 ▼▼▼ --- */
-    .back-button {
-        position: absolute;
-        bottom: 4vh;
-        left: 4vw;
-        z-index: 10; /* 다른 요소들 위에 보이도록 설정 */
-        
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        border: none;
-        background-color: rgba(255, 255, 255, 0.8);
-        backdrop-filter: blur(5px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
-    .back-button svg {
-        width: 30px;
-        height: 30px;
-        color: #343a40;
-    }
-    .back-button:hover {
-        transform: scale(1.05);
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
-    }
-    /* --- ▲▲▲ 여기까지가 추가된 부분입니다 ▲▲▲ --- */
-
-	.order-layout {
-		display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 2rem; width: 100%; height: 100%;
-	}
 	.menu-section {
-		background: #ffffff; border-radius: 24px; display: flex; flex-direction: column; padding: 2.5rem; overflow: hidden;
+		background: #ffffff;
+		border-radius: 24px;
+		/* 핵심: 내부 요소를 수직으로 배치하고, 스크롤 영역을 제어하기 위함 */
+		display: flex;
+		flex-direction: column;
+		padding: 2.5rem;
+		height: 100%; /* 그리드 셀의 높이를 꽉 채움 */
+		box-sizing: border-box;
+		overflow: hidden; /* 내부 스크롤이 밖으로 영향을 주지 않도록 */
 	}
+
 	.category-nav {
-		display: flex; gap: 1rem; flex-shrink: 0;
+		flex-shrink: 0; /* 카테고리 바의 높이는 고정 */
+		display: flex;
+		gap: 0.75rem;
 	}
 	.category-button {
-		padding: 0.9rem 1.8rem; font-size: 1.4rem; font-weight: 600; border: 2px solid #dee2e6; background-color: #fff; color: #495057; border-radius: 100px; cursor: pointer; transition: all 0.2s;
+		padding: 0.7rem 1.4rem;
+		font-size: 1.1rem;
+		font-weight: 500;
+		border: 1px solid #dee2e6;
+		background-color: #fff;
+		color: #495057;
+		border-radius: 8px;
+		cursor: pointer;
 	}
-	.category-button.active { background-color: #1c7ed6; color: white; border-color: #1c7ed6; }
+	.category-button.active {
+		background-color: #343a40;
+		color: white;
+		border-color: #343a40;
+		font-weight: 600;
+	}
+
 	.menu-grid {
-		margin-top: 2rem; flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 1.25rem; overflow-y: auto; padding-right: 1rem; margin-right: -1rem;
+		margin-top: 1.5rem;
+		flex-grow: 1; /* 핵심: 남는 모든 공간을 차지 */
+		overflow-y: auto; /* 핵심: 내용이 넘치면 스크롤바 생성 */
+		padding-right: 1rem;
+		margin-right: -1rem;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+		gap: 1.25rem;
 	}
+	/* --- ▲▲▲ 핵심 수정 부분 끝 ▲▲▲ --- */
+
 	.menu-item {
-		background: #f8f9fa; border: 1px solid #f1f3f5; border-radius: 16px; padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 0.5rem;
+		background: #f8f9fa; border: 1px solid #f1f3f5; border-radius: 16px;
+		padding: 1rem; text-align: center; cursor: pointer; transition: all 0.2s; 
+		display: flex; flex-direction: column; justify-content: center; align-items: center; 
+		gap: 0.5rem;
 	}
 	.menu-item:hover { transform: translateY(-5px); border-color: #ced4da; }
 	.menu-item-image { font-size: 3.5rem; line-height: 1; }
 	.menu-item-name { font-size: 1.1rem; font-weight: 600; color: #343a40; }
 	.menu-item-price { font-size: 1rem; font-weight: 500; color: #868e96; }
-	
+
 	.cart-section {
 		background-color: #ffffff; border-radius: 24px; padding: 2.5rem; box-sizing: border-box; height: 100%; display: flex; flex-direction: column; overflow: hidden;
 	}
 	.cart-title {
-		flex-shrink: 0; font-size: 2rem; font-weight: 700; text-align: center; color: #343a40; margin: 0 0 1.5rem 0;
+		flex-shrink: 0; font-size: 1.8rem; font-weight: 600; text-align: center; color: #343a40; margin: 0 0 1.5rem 0;
 	}
 	.cart-items-box {
 		flex-grow: 1; overflow-y: auto; padding: 0 0.5rem;
 	}
-	.cart-empty {
-		height: 100%; display: flex; justify-content: center; align-items: center; color: #adb5bd; font-size: 1.4rem;
-	}
-	.cart-item {
-		display: flex; justify-content: space-between; align-items: center; padding: 1.2rem 0; border-bottom: 1px solid #f1f3f5;
-	}
+	.cart-empty { height: 100%; display: flex; justify-content: center; align-items: center; color: #adb5bd; font-size: 1.2rem; }
+	.cart-item { display: flex; justify-content: space-between; align-items: center; padding: 1rem 0; border-bottom: 1px solid #f1f3f5; }
 	.item-info { display: flex; flex-direction: column; gap: 0.3rem; }
-	.item-name { font-size: 1.3rem; font-weight: 600; color: #212529; }
-	.item-price { font-size: 1.1rem; color: #868e96; }
-	.quantity-control {
-		display: flex; align-items: center; gap: 1rem;
-	}
-	.quantity-display { font-size: 1.4rem; font-weight: 600; min-width: 25px; text-align: center; color: #212529; }
-	.quantity-btn {
-		width: 38px; height: 38px; border-radius: 50%; border: 1px solid #dee2e6; background-color: #fff; font-size: 1.8rem; line-height: 1; cursor: pointer; color: #495057; display: flex; justify-content: center; align-items: center; padding: 0; transition: background-color 0.15s;
-	}
+	.item-name { font-size: 1.1rem; font-weight: 500; color: #212529; }
+	.item-price { font-size: 1rem; color: #868e96; }
+	.quantity-control { display: flex; align-items: center; gap: 1rem; }
+	.quantity-display { font-size: 1.2rem; font-weight: 600; min-width: 20px; text-align: center; color: #212529; }
+	.quantity-btn { width: 32px; height: 32px; border-radius: 50%; border: 1px solid #dee2e6; background-color: #fff; font-size: 1.5rem; line-height: 1; cursor: pointer; color: #495057; display: flex; justify-content: center; align-items: center; padding: 0; transition: background-color 0.15s; }
 	.quantity-btn:hover { background-color: #f1f3f5; border-color: #adb5bd; }
-	.cart-summary {
-		flex-shrink: 0; padding-top: 1.5rem; border-top: 2px solid #f1f3f5;
-	}
-	.total-amount {
-		display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem;
-	}
-	.total-amount span { font-size: 1.4rem; font-weight: 600; color: #495057; }
-	.total-amount .total-price { font-size: 2rem; font-weight: 700; color: #d9480f; }
-	.cart-actions {
-		display: grid; grid-template-columns: 1fr 2fr; gap: 1rem;
-	}
-	.action-btn {
-		padding: 1.5rem; font-size: 1.4rem; font-weight: 700; border: none; border-radius: 16px; cursor: pointer;
-	}
+	.cart-summary { flex-shrink: 0; padding-top: 1.5rem; border-top: 1px solid #f1f3f5; }
+	.total-amount { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 1.5rem; }
+	.total-amount span { font-size: 1.2rem; font-weight: 600; color: #495057; }
+	.total-amount .total-price { font-size: 1.8rem; font-weight: 700; color: #d9480f; }
+	.cart-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 1rem; }
+	.action-btn { padding: 1.2rem; font-size: 1.2rem; font-weight: 700; border: none; border-radius: 12px; cursor: pointer; }
 	.clear-btn { background-color: #e9ecef; color: #495057; }
 	.pay-btn { background-color: #1c7ed6; color: white; }
 </style>
