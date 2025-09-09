@@ -38,7 +38,7 @@
 			</button>
 			<div class="grid-button secondary ai-toggle-container" on:click={toggleAiFeature} role="button" tabindex="0">
 				<div class="button-text">
-					<span class="main-text">AI 음성 주문</span>
+					<span class="main-text">AI 주문 도우미</span>
 					<span class="sub-text">{#if isAiEnabled}현재 활성화됨{:else}터치하여 활성화{/if}</span>
 				</div>
 				<div class="toggle-switch" class:active={isAiEnabled}>
